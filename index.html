@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="zh-MO">
+<head>
+  <meta charset="UTF-8">
+  <title>財產移轉申報(公證員) - 原型預覽</title>
+  <!-- 引入 Element UI 樣式 -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <style>
+    body { 
+      background-color: #f0f2f5; 
+      margin: 0; 
+      font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微軟雅黑", Arial, sans-serif; 
+    }
+    /* 模擬 DSF 頂部導航 */
+    .header-top { 
+      background-color: #fff; 
+      padding: 0 40px; 
+      display: flex; 
+      align-items: center; 
+      height: 80px; 
+      justify-content: space-between; 
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+    }
+    .header-logo img {
+      height: 50px; /* 根據截圖比例調整 */
+    }
+    /* 底部頁腳樣式 */
+    .dsf-footer {
+      background-color: #e6f1fc; /* 淺藍色背景 */
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 40px;
+      border-top: 1px solid #d9e8f5;
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      color: #333;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .footer-logo {
+      width: 60px;
+      height: 60px;
+      background-color: #005A3C; /* 模擬 DSF 圓形 Logo 佔位 */
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 20px;
+      margin-right: 20px;
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .qrcode-box {
+      background: white;
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #666;
+    }
+    .qrcode-box img {
+      width: 50px;
+      height: 50px;
+      margin-right: 8px;
+    }
+    .footer-bottom {
+      background-color: #1890ff;
+      color: white;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 12px;
+    }
+    /* 一級導航欄 */
+    .nav-menu {
+      background-color: #fff;
+      border-bottom: 2px solid #1890ff;
+      border-top: 1px solid #ebeef5;
+      padding: 0 20px;
+      display: flex;
+    }
+    .nav-item {
+      padding: 12px 20px;
+      font-size: 15px;
+      color: #606266;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .nav-item:hover {
+      color: #1890ff;
+    }
+    .nav-item.active {
+      color: #1890ff;
+      border-bottom: 3px solid #1890ff;
+      font-weight: bold;
+    }
+
+    .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+    .box-card { margin-bottom: 20px; }
+    .footer-bar { 
+      position: fixed; 
+      bottom: 0; left: 0; right: 0; 
+      background: #fff; 
+      padding: 12px 20px; 
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05); 
+      text-align: right; 
+      z-index: 100;
+    }
+    /* 面板區塊樣式 */
+    .panel-header { 
+      font-weight: bold; 
+      border-left: 4px solid #1890ff; 
+      padding-left: 10px; 
+      margin-bottom: 15px; 
+      font-size: 15px;
+      color: #333;
+      display: flex;
+      align-items: center;
+    }
+    .form-section { 
+      background: #fafafa; 
+      padding: 20px 20px 5px 20px; 
+      margin-bottom: 20px; 
+      border-radius: 4px; 
+      border: 1px solid #ebeef5; 
+    }
+    .el-form-item__label { font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 頂部模擬 -->
+    <div class="header-top">
+      <div class="header-logo">
+        <!-- 使用一個佔位 SVG 模擬你截圖中的澳門財政局 Logo 組合 -->
+        <svg width="250" height="50" xmlns="http://www.w3.org/2000/svg">
+          <rect width="250" height="50" fill="transparent"/>
+          <circle cx="25" cy="25" r="20" fill="#005A3C"/>
+          <text x="25" y="30" font-family="Arial" font-size="14" fill="white" text-anchor="middle">DSF</text>
+          <text x="55" y="22" font-family="Microsoft YaHei" font-size="16" font-weight="bold" fill="#005A3C">澳門特別行政區政府財政局</text>
+          <text x="55" y="38" font-family="Arial" font-size="10" fill="#005A3C">Direcção dos Serviços de Finanças</text>
+        </svg>
+        <!-- 創新點 6：歷史常用客戶庫 Dialog -->
+      <el-dialog title="歷史常用客戶庫" :visible.sync="quickSelectDialogVisible" width="600px">
+        <el-alert title="點擊客戶即可一鍵帶入申報表" type="info" show-icon style="margin-bottom: 15px;" :closable="false"></el-alert>
+        <el-table :data="historicalClients" border size="mini" @row-click="confirmQuickSelect">
+          <el-table-column label="客戶名稱" prop="name"></el-table-column>
+          <el-table-column label="客戶類型" prop="type" width="120">
+            <template slot-scope="scope">
+              <el-tag size="mini" :type="scope.row.type === '企業' ? 'success' : 'primary'">{{ scope.row.type }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center">
+            <template slot-scope="scope">
+              <el-button type="text" size="mini">一鍵帶入</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-dialog>
+
+      <!-- 創新點 7：物業地圖與街景預覽 Dialog -->
+      <el-dialog title="物業地圖預覽" :visible.sync="mapPreviewDialogVisible" width="700px" top="5vh">
+        <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: bold; color: #333;"><i class="el-icon-location"></i> 澳門特別行政區南灣大馬路...</span>
+          <el-radio-group v-model="mapViewType" size="mini">
+            <el-radio-button label="map">地圖</el-radio-button>
+            <el-radio-button label="street">街景</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div style="width: 100%; height: 400px; background: #e6f1fc; display: flex; justify-content: center; align-items: center; border: 1px solid #dcdfe6; border-radius: 4px; position: relative; overflow: hidden;">
+          <!-- 模擬地圖內容 -->
+          <div v-if="mapViewType === 'map'" style="text-align: center; color: #909399;">
+            <i class="el-icon-map-location" style="font-size: 60px; color: #409EFF; margin-bottom: 15px;"></i>
+            <div>正在加載地圖數據... (模擬地圖 API)</div>
+            <div style="font-size: 12px; margin-top: 10px;">座標: 22.1906, 113.5414</div>
+          </div>
+          <!-- 模擬街景內容 -->
+          <div v-if="mapViewType === 'street'" style="text-align: center; color: #909399; width: 100%; height: 100%; background: #333; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <i class="el-icon-picture-outline" style="font-size: 60px; color: #E6A23C; margin-bottom: 15px;"></i>
+            <div style="color: #fff;">正在加載全景圖像... (模擬街景 API)</div>
+          </div>
+        </div>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="mapPreviewDialogVisible = false" size="small">關閉</el-button>
+          <el-button type="primary" @click="mapPreviewDialogVisible = false" size="small">確認位置無誤</el-button>
+        </span>
+      </el-dialog>
+
+      <!-- 創新點 8：OCR 智能識別 Dialog -->
+      <el-dialog title="OCR 智能證件識別" :visible.sync="ocrDialogVisible" width="500px">
+        <div style="text-align: center; padding: 20px;">
+          <el-upload
+            class="upload-demo"
+            drag
+            action="#"
+            :auto-upload="false"
+            :on-change="handleOcrSimulate"
+            :show-file-list="false">
+            <i v-if="!isOcrLoading" class="el-icon-upload"></i>
+            <i v-else class="el-icon-loading" style="font-size: 67px; color: #409EFF; margin: 40px 0 16px;"></i>
+            <div v-if="!isOcrLoading" class="el-upload__text">將證件圖片拖到此處，或<em>點擊上傳</em></div>
+            <div v-else class="el-upload__text" style="color: #409EFF;">正在識別證件資訊...</div>
+            <div class="el-upload__tip" slot="tip">支持上傳澳門居民身份證、護照等，自動提取姓名及證件號</div>
+          </el-upload>
+        </div>
+      </el-dialog>
+
+    </div>
+      <div style="font-size: 14px; color: #1890ff; cursor: pointer;">
+        <i class="el-icon-user"></i> 公證員(Notary)
+      </div>
+    </div>
+    <!-- 導航菜單 -->
+    <div class="nav-menu">
+      <div class="nav-item">權限管理</div>
+      <div class="nav-item">M/B憑單管理</div>
+      <div class="nav-item">債務查詢</div>
+      <div class="nav-item active" @click="currentView = 'list'">印花稅M1申報</div>
+    </div>
+
+    <div class="container">
+      <!-- 面包屑導航 -->
+      <el-breadcrumb separator="/" style="margin-bottom: 20px; font-size: 13px; padding: 10px 0;">
+        <el-breadcrumb-item>目前位置</el-breadcrumb-item>
+        <el-breadcrumb-item v-if="currentView === 'list'">印花稅M1申報</el-breadcrumb-item>
+        <el-breadcrumb-item v-if="currentView === 'form'"><a href="#" @click.prevent="currentView = 'list'">印花稅M1申報</a></el-breadcrumb-item>
+        <el-breadcrumb-item v-if="currentView === 'form'"><b>登記申報資料（公證員）</b></el-breadcrumb-item>
+      </el-breadcrumb>
+
+      <!-- ========================================== -->
+      <!-- 頁面 1: 【503826】財產移轉申報登記引導頁 -->
+      <!-- ========================================== -->
+      <div v-if="currentView === 'list'">
+        <el-card class="box-card" shadow="never">
+          <!-- 查詢條件區 -->
+          <el-form :model="searchForm" size="small" label-width="140px" style="background: #fcfcfc; padding: 20px 20px 0 20px; border-radius: 4px; margin-bottom: 20px;">
+            <!-- 1. 不動產識別編號 -->
+            <el-row>
+              <el-col :span="24">
+                <el-form-item label="不動產識別編號：">
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <el-input v-model="searchForm.houseNo" placeholder="房屋登記編號" style="width: 150px;"></el-input>
+                    <el-input v-model="searchForm.marit" placeholder="Marit" style="width: 80px;"></el-input>
+                    <el-input v-model="searchForm.fase" placeholder="Fase" style="width: 80px;"></el-input>
+                    <el-input v-model="searchForm.andar" placeholder="Andar" style="width: 80px;"></el-input>
+                    <el-input v-model="searchForm.mradia" placeholder="Mradia" style="width: 80px;"></el-input>
+                    <el-input v-model="searchForm.carparkNo" placeholder="CarparkNo" style="width: 100px;"></el-input>
+                    <el-link type="primary" :underline="false" style="margin-left: 10px; font-size: 12px;" @click="moreSearchDialogVisible = true">以更多查找編號</el-link>
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+              <!-- 2. 處理狀態 -->
+              <el-col :span="8">
+                <el-form-item label="處理狀態：">
+                  <el-select v-model="searchForm.status" placeholder="請選擇" style="width: 100%;">
+                    <el-option label="全部" value="全部"></el-option>
+                    <el-option label="待處理" value="待處理"></el-option>
+                    <el-option label="已處理" value="已處理"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <!-- 3. 申報記錄編號 -->
+              <el-col :span="8">
+                <el-form-item label="申報記錄編號：">
+                  <el-input v-model="searchForm.recordNo" placeholder="請輸入申報記錄編號" style="width: 100%;"></el-input>
+                </el-form-item>
+              </el-col>
+              <!-- 4. 納稅人名稱 -->
+              <el-col :span="8">
+                <el-form-item label="納稅人名稱：">
+                  <el-input v-model="searchForm.taxName" placeholder="請輸入納稅人名稱" style="width: 100%;"></el-input>
+                </el-form-item>
+              </el-col>
+
+              <!-- 5. 納稅人編號 -->
+              <el-col :span="8">
+                <el-form-item label="納稅人編號：">
+                  <el-input v-model="searchForm.taxNo" placeholder="請輸入納稅人編號" style="width: 100%;"></el-input>
+                </el-form-item>
+              </el-col>
+              <!-- 6. 納稅人證件 -->
+              <el-col :span="16">
+                <el-form-item label="納稅人證件：">
+                  <div style="display: flex; gap: 5px;">
+                    <el-select v-model="searchForm.idType" placeholder="證件類型" style="width: 150px;">
+                      <el-option label="20 澳門居民身份證" value="20"></el-option>
+                      <el-option label="07 香港身份證" value="07"></el-option>
+                      <el-option label="06 中國護照" value="06"></el-option>
+                      <el-option label="23 中華人民共和國居民身份證" value="23"></el-option>
+                      <el-option label="27 中華人民共和國往來港澳通行證" value="27"></el-option>
+                      <el-option label="25 因公往來香港澳門特別行政區通行證" value="25"></el-option>
+                      <el-option label="26 特別逗留證" value="26"></el-option>
+                      <el-option label="15 外地僱員身份認別證" value="15"></el-option>
+                      <el-option label="10 其他護照" value="10"></el-option>
+                      <el-option label="99 其他證件(自然人)" value="99"></el-option>
+                    </el-select>
+                    <el-input v-model="searchForm.idNo" placeholder="證件編號" style="flex: 1;"></el-input>
+                  </div>
+                </el-form-item>
+              </el-col>
+
+              <!-- 7. 申報來源 -->
+              <el-col :span="8">
+                <el-form-item label="申報來源：">
+                  <el-select v-model="searchForm.source" placeholder="請選擇" style="width: 100%;">
+                    <el-option label="線上投遞" value="online"></el-option>
+                    <el-option label="線下投遞" value="offline"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <!-- 8. 是否逾期 -->
+              <el-col :span="8">
+                <el-form-item label="是否逾期：">
+                  <el-select v-model="searchForm.isOverdue" placeholder="請選擇" style="width: 100%;">
+                    <el-option label="非逾期" value="false"></el-option>
+                    <el-option label="逾期" value="true"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <!-- 9. 申報時間 -->
+              <el-col :span="8">
+                <el-form-item label="申報時間：">
+                  <el-date-picker
+                    v-model="searchForm.dateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="開始"
+                    end-placeholder="結束"
+                    style="width: 100%;">
+                  </el-date-picker>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 4px; margin-bottom: 10px;">
+              <!-- 按鈕靠右 -->
+              <div>
+                <el-button size="small" @click="resetSearch">重 設</el-button>
+                <el-button type="primary" size="small" icon="el-icon-search">查 詢</el-button>
+              </div>
+            </div>
+          </el-form>
+
+
+          <!-- 列表操作區 -->
+          <div style="margin-bottom: 15px;">
+            <el-button 
+              type="danger" 
+              size="small" 
+              plain 
+              v-if="searchForm.status === '待處理' || searchForm.status === '全部'" 
+              @click="handleBatchVoid"
+              icon="el-icon-delete">
+              批量作廢
+            </el-button>
+            <el-button type="primary" size="small" @click="currentView = 'form'" style="float: right;" icon="el-icon-plus">登記申報資料</el-button>
+            <div style="clear: both;"></div>
+          </div>
+
+          <!-- 列表區 -->
+          <el-table :data="filteredTableData" border style="width: 100%" size="small" @selection-change="handleSelectionChange" header-cell-style="{background:'#f5f7fa'}">
+            <el-table-column type="selection" width="50" align="center"></el-table-column>
+            <!-- 1. 操作 -->
+            <el-table-column label="操作" width="130" align="center" fixed="left">
+              <template slot-scope="scope">
+                <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
+                <el-button type="text" size="small" @click="currentView = 'form'">編輯</el-button>
+                <el-button type="text" size="small" style="color: #67C23A;" @click="$message.success('下載存根')">存根</el-button>
+              </template>
+            </el-table-column>
+            <!-- 2. 申請記錄編號 -->
+            <el-table-column prop="recordNo" label="申請記錄編號" min-width="150"></el-table-column>
+            <!-- 3. 不動產識別編號 -->
+            <el-table-column prop="houseNo" label="不動產識別編號" min-width="130" show-overflow-tooltip></el-table-column>
+            <!-- 新增：申報來源 -->
+            <el-table-column prop="source" label="申報來源" min-width="100" align="center"></el-table-column>
+            <!-- 新增：買方 -->
+            <el-table-column prop="buyer" label="買方" min-width="120" show-overflow-tooltip></el-table-column>
+            <!-- 新增：賣方 -->
+            <el-table-column prop="seller" label="賣方" min-width="120" show-overflow-tooltip></el-table-column>
+            <!-- 4. 納稅人 -->
+            <el-table-column label="納稅人" min-width="160" show-overflow-tooltip>
+              <template slot-scope="scope">
+                <div>{{ scope.row.nameZh || scope.row.buyer || scope.row.seller }}</div>
+                <div style="font-size: 12px; color: #909399;" v-if="scope.row.nameEn">{{ scope.row.nameEn }}</div>
+              </template>
+            </el-table-column>
+            <!-- 新增：申請時間 -->
+            <el-table-column prop="applyTime" label="申請時間" min-width="150" align="center"></el-table-column>
+            <!-- 5. 移轉方式 -->
+            <el-table-column prop="transferMethod" label="移轉方式" min-width="100" align="center">
+              <template slot-scope="scope">
+                <span>{{ scope.row.transferMethod }}</span>
+              </template>
+            </el-table-column>
+            <!-- 6. 表格數量 -->
+            <el-table-column prop="formCount" label="表格數量" width="80" align="center"></el-table-column>
+            <!-- 7. 是否逾期申報 -->
+            <el-table-column label="是否逾期申報" width="110" align="center">
+              <template slot-scope="scope">
+                <el-tag :type="scope.row.isOverdue ? 'danger' : 'success'" size="mini">
+                  {{ scope.row.isOverdue ? '逾期' : '未逾期' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <!-- 8. 處理狀態 -->
+            <el-table-column prop="status" label="處理狀態" width="100" align="center">
+              <template slot-scope="scope">
+                <el-tag :type="scope.row.status === '已處理' ? 'success' : (scope.row.status === '已作廢' ? 'info' : 'warning')" size="mini">{{scope.row.status}}</el-tag>
+              </template>
+            </el-table-column>
+            <!-- 9. 逾期天數 -->
+            <el-table-column prop="overdueDays" label="逾期天數" width="80" align="center">
+              <template slot-scope="scope">
+                <span :style="{color: scope.row.overdueDays > 0 ? '#f56c6c' : '#333'}">{{ scope.row.overdueDays || '-' }}</span>
+              </template>
+            </el-table-column>
+            <!-- 10. 最後更新時間 -->
+            <el-table-column prop="updateTime" label="最後更新時間" min-width="150"></el-table-column>
+          </el-table>
+          
+          <div style="text-align: right; margin-top: 15px;">
+            <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="filteredTableData.length" :page-size="10"></el-pagination>
+          </div>
+        </el-card>
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- 頁面 2: 【503827】財產移轉申報登記處理頁 -->
+      <!-- ========================================== -->
+      <div v-if="currentView === 'form'" style="padding-bottom: 60px;">
+        <el-card class="box-card" shadow="never">
+          <div slot="header" class="clearfix" style="font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div><i class="el-icon-document" style="color: #1890ff; margin-right: 5px;"></i> 登記申報資料（公證員）</div>
+            <!-- 創新點 3：頂部智能預警條 -->
+            <el-alert
+              v-if="showSSDAlert"
+              title="智能預警：此筆交易可能涉及【特別印花稅 (SSD)】或【取得印花稅 (BSD)】，請留意核對買賣雙方身份及上次交易時間。"
+              type="warning"
+              show-icon
+              :closable="false"
+              style="width: 600px; padding: 4px 10px;">
+            </el-alert>
+          </div>
+          
+          <el-form :model="formData" label-width="210px" size="small">
+
+            <!-- 面板 1：不動產資訊 -->
+            <div class="form-section" v-if="formData.transferType === 'real_estate'">
+              <div class="panel-header" style="justify-content: space-between;">
+                <span>不動產資訊</span>
+                <el-button type="primary" size="mini" plain @click="houseRecordDialogVisible = true">選擇房屋紀錄</el-button>
+              </div>
+              <el-row>
+                <!-- 調換位置：房屋紀錄編號/臨時登記編號 放前面 -->
+                <el-col :span="24">
+                  <div style="background: #e6f7ff; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #91d5ff; display: flex; align-items: center;">
+                    <i class="el-icon-document" style="color: #409eff; margin-right: 8px;"></i>
+                    <span style="color: #409eff; font-weight: bold; margin-right: 10px;">不動產識別編號(房屋紀錄編號)：</span>
+                    <el-input v-model="formData.houseRecordNo" placeholder="請輸入編號" style="width: 250px;" size="small"></el-input>
+                  </div>
+                </el-col>
+
+                <el-col :span="12">
+                  <el-form-item label="不動產類型：" required>
+                    <div style="display: flex; gap: 10px;">
+                      <el-select v-model="formData.propertyType" style="flex: 1;">
+                        <el-option label="市區房屋" value="市區房屋"></el-option>
+                        <el-option label="在建中樓宇（樓花）" value="在建中樓宇（樓花）"></el-option>
+                        <el-option label="建築用地" value="建築用地"></el-option>
+                        <el-option label="農用地" value="農用地"></el-option>
+                        <el-option label="長期租借/租賃方式批地" value="長期租借/租賃方式批地"></el-option>
+                      </el-select>
+                      <!-- 選擇是否為獨立單位 -->
+                      <el-select v-model="formData.unitType" style="flex: 1;" v-if="formData.propertyType === '市區房屋'" placeholder="請選擇單位">
+                        <el-option label="獨立單位" value="independent"></el-option>
+                        <el-option label="非獨立單位" value="other"></el-option>
+                      </el-select>
+                    </div>
+                  </el-form-item>
+                </el-col>
+                
+                <el-col :span="12">
+                  <el-form-item label="物業標示編號：" :required="formData.propertyType === '在建中樓宇（樓花）'">
+                    <el-input v-model="formData.propertyId" placeholder="無" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+                
+                <!-- 「所在B冊」、「所在頁」 -->
+                <el-col :span="12">
+                  <el-form-item label="所在B冊：">
+                    <el-input v-model="formData.bookB" placeholder="無" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="所在頁：">
+                    <el-input v-model="formData.pageNo" placeholder="無" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="12">
+                  <el-form-item label="樓宇或單位用途：">
+                    <el-select v-model="formData.usage" style="width: 100%;">
+                      <el-option label="住宅" value="1"></el-option>
+                      <el-option label="商業" value="2"></el-option>
+                      <el-option label="工業" value="3"></el-option>
+                      <el-option label="機動車輛位" value="4"></el-option>
+                      <el-option label="其他" value="other"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <!-- 「其他用途說明」：當「樓宇或單位用途」=”其他“時顯示，必填 -->
+                <el-col :span="12" v-if="formData.usage === 'other'">
+                  <el-form-item label="其他用途說明：" required>
+                    <el-input v-model="formData.otherUsageDesc" placeholder="請填寫" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+
+                <!-- 擴充的不動產詳細資訊 -->
+                <el-col :span="12">
+                  <el-form-item label="實用面積：">
+                    <el-input v-model="formData.netArea" placeholder="請輸入" style="width: 100%;">
+                      <template slot="append">平方米</template>
+                    </el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="建築面積：">
+                    <el-input v-model="formData.grossArea" placeholder="請輸入" style="width: 100%;">
+                      <template slot="append">平方米</template>
+                    </el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="建成年份：">
+                    <el-input v-model="formData.buildYear" placeholder="請輸入" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="業權性質：">
+                    <el-select v-model="formData.ownershipType" style="width: 100%;">
+                      <el-option label="完全所有權" value="完全所有權"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              
+              <!-- 子面板：地址資訊 -->
+              <div style="border: 1px dashed #d9d9d9; background: #fff; margin: 10px 0; padding: 15px; border-radius: 4px;">
+                <div style="font-weight: bold; margin-bottom: 15px; color: #666; font-size: 13px;">
+                  <i class="el-icon-location-outline"></i> 地址資訊
+                </div>
+                <el-row>
+                  <el-col :span="24">
+                    <el-form-item label="樓宇及街道：" label-width="110px" required>
+                      <el-input v-model="formData.streetFull" placeholder="請輸入" prefix-icon="el-icon-search"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="地區：" label-width="110px">
+                      <el-input v-model="formData.region" placeholder="請輸入"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="街道：" label-width="110px">
+                      <el-input v-model="formData.street" placeholder="請輸入"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="門牌號：" label-width="110px">
+                      <el-input v-model="formData.doorNo" placeholder="請輸入"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="大廈名稱：" label-width="110px">
+                      <el-input v-model="formData.buildingName" placeholder="請輸入"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="24">
+                    <el-form-item label="完整地址：" label-width="110px">
+                      <div style="background: #f5f7fa; padding: 0 10px; border-radius: 4px; color: #666; display: flex; justify-content: space-between; align-items: center;">
+                        <span>{{ formData.fullAddress || '澳門特別行政區南灣大馬路575號財政局大樓' }}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          <!-- 創新點 7：物業地圖預覽按鈕 -->
+                          <el-button type="primary" plain size="mini" icon="el-icon-map-location" @click="handlePreviewMap">地圖與街景預覽</el-button>
+                          <!-- 創新點 5：一鍵複製按鈕 -->
+                          <el-button type="text" size="mini" icon="el-icon-document-copy" @click="$message.success('已複製完整地址')">複製</el-button>
+                        </div>
+                      </div>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </div>
+            </div>
+
+
+
+            <!-- 面板 4：移轉資訊 -->
+            <div class="form-section">
+              <div class="panel-header">移轉資訊</div>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="移轉方式：" required>
+                    <el-select v-model="formData.transferMethod" style="width: 100%;">
+                      <el-option label="買賣" value="買賣"></el-option>
+                      <el-option label="無償" value="無償"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="移轉類型：">
+                    <el-select v-model="formData.fileType" style="width: 100%;">
+                      <el-option label="00 中間轉移" value="00 中間轉移"></el-option>
+                      <el-option label="01 確定轉移" value="01 確定轉移"></el-option>
+                      <el-option label="02 交換" value="02 交換"></el-option>
+                      <el-option label="03 賦予受權人財產分權的授權書" value="03 賦予受權人財產分權的授權書"></el-option>
+                      <el-option label="04 有實際效力的買賣合約" value="04 有實際效力的買賣合約"></el-option>
+                      <el-option label="05 贈予" value="05 贈予"></el-option>
+                      <el-option label="06 拍賣" value="06 拍賣"></el-option>
+                      <el-option label="07 遺產" value="07 遺產"></el-option>
+                      <el-option label="08 其他" value="08 其他"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="12">
+                  <el-form-item label="轉讓百分比：" required>
+                    <el-input placeholder="請輸入百分比" style="width: 100%;"><template slot="append">%</template></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item :label="formData.transferMethod === '無償' ? '申報價值：' : '移轉價值：'" required>
+                    <el-input v-model="formData.transferValue" placeholder="請輸入金額" style="width: 100%;">
+                      <template slot="append">MOP</template>
+                    </el-input>
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="12">
+                  <el-form-item label="移轉用途：" required>
+                    <el-select v-model="formData.transferUsage" style="width: 100%;">
+                      <el-option label="住宅" value="住宅"></el-option>
+                      <el-option label="商業" value="商業"></el-option>
+                      <el-option label="工業" value="工業"></el-option>
+                      <el-option label="其他" value="其他"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="文件作出日期：" required>
+                    <el-date-picker v-model="formData.fileDate" type="date" placeholder="選擇日期" style="width: 100%;"></el-date-picker>
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="24">
+                  <el-form-item label="是否私文書：" required>
+                    <el-radio-group v-model="formData.isPrivateDoc">
+                      <el-radio :label="true">是</el-radio>
+                      <el-radio :label="false">否</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="是否申報中間移轉：" required>
+                    <el-radio-group v-model="formData.isMiddleTransfer">
+                      <el-radio :label="true">是</el-radio>
+                      <el-radio :label="false">否</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+                
+                <!-- 中間移轉憑單資訊 (當選擇"是"時顯示) -->
+                <el-col :span="12" v-if="formData.isMiddleTransfer">
+                  <el-form-item label="憑單編號：" required>
+                    <el-input v-model="formData.middleVoucherNo" placeholder="請輸入憑單編號" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+                
+                <!-- 動態顯示：其他文件說明 -->
+                <el-col :span="24" v-if="formData.fileType === 'other'">
+                  <el-form-item label="其他文件說明：" required>
+                    <el-input placeholder="請輸入說明" style="width: 100%;"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+
+
+
+            <!-- 面板 4：買方資訊 -->
+            <div class="form-section">
+          <div class="panel-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+              <span>買方資訊 <span style="color: #f56c6c; font-weight: normal; font-size: 12px; margin-left: 10px;">*至少存在一條數據</span></span>
+            </div>
+            <div>
+              <!-- 創新點 6：歷史常用客戶庫按鈕 -->
+              <el-button type="warning" size="mini" icon="el-icon-star-on" @click="handleQuickSelectBuyer" style="margin-right: 10px;">從歷史庫帶入</el-button>
+              <el-button type="primary" size="mini" icon="el-icon-plus" @click="handleAddBuyerDialog">新增買方</el-button>
+            </div>
+          </div>
+              <el-table :data="buyersData" border size="mini" empty-text="暫無數據，請點擊右上方按鈕新增買方">
+                <el-table-column label="操作" width="100" align="center">
+                  <template slot-scope="scope">
+                    <el-button type="text" style="color: #f56c6c;" @click="handleDeleteBuyer(scope.$index)">刪除</el-button>
+                  </template>
+                </el-table-column>
+                <el-table-column label="買方名稱" prop="name" min-width="120"></el-table-column>
+                <el-table-column label="身份識別編號" prop="taxNo" min-width="120"></el-table-column>
+                <el-table-column label="證件類型" prop="idType" min-width="120"></el-table-column>
+                <el-table-column label="取得百分比(%)" width="220" align="center">
+                  <template slot-scope="scope">
+                    <el-input-number size="mini" v-model="scope.row.percent" :precision="4" :step="1" :min="0" :max="100" style="width: 150px;"></el-input-number>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <!-- 面板 5：賣方資訊 -->
+            <div class="form-section">
+              <div class="panel-header" style="justify-content: space-between;">
+                <span>賣方資訊 <span style="color: #f56c6c; font-weight: normal; font-size: 12px; margin-left: 10px;">*至少存在一條數據</span></span>
+          <div style="display: flex; align-items: center;">
+              <!-- 創新點 6：歷史常用客戶庫按鈕 -->
+              <el-button type="warning" size="mini" icon="el-icon-star-on" @click="handleQuickSelectSeller" style="margin-right: 10px;">從歷史庫帶入</el-button>
+              <el-button type="primary" size="mini" icon="el-icon-plus" @click="handleAddSellerDialog">新增賣方</el-button>
+            </div>
+              </div>
+              <el-table :data="sellersData" border size="mini" empty-text="暫無數據，請點擊右上方按鈕新增賣方">
+                <el-table-column label="操作" width="100" align="center">
+                  <template slot-scope="scope">
+                    <el-button type="text" @click="handleEditSeller(scope.row)">編輯</el-button>
+                    <el-button type="text" style="color: #f56c6c;" @click="handleRemoveSeller(scope.$index)">移除</el-button>
+                  </template>
+                </el-table-column>
+                <el-table-column label="賣方名稱" prop="name" min-width="120"></el-table-column>
+                <el-table-column label="身份識別編號" prop="taxNo" min-width="120"></el-table-column>
+                <el-table-column label="證件類型" prop="idType" min-width="120"></el-table-column>
+                <el-table-column label="取得百分比(%)" width="220" align="center">
+                  <template slot-scope="scope">
+                    <el-input-number size="mini" v-model="scope.row.percent" :precision="4" :step="1" :min="0" :max="100" style="width: 150px;" disabled></el-input-number>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <!-- 面板 5：公函及稅單郵寄地址 -->
+            <div class="form-section">
+              <div class="panel-header">公函及稅單郵寄地址</div>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="收件人：" required>
+                    <el-input v-model="formData.mailRecipient" placeholder="請輸入收件人姓名"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="地區：" required>
+                    <el-select v-model="formData.mailRegion" placeholder="請選擇" style="width: 100%;">
+                      <el-option label="澳門" value="澳門"></el-option>
+                      <el-option label="氹仔" value="氹仔"></el-option>
+                      <el-option label="路環" value="路環"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="街道：" required>
+                    <el-input v-model="formData.mailStreet" placeholder="請輸入街名"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="門牌號：" required>
+                    <el-input v-model="formData.mailDoorNo" placeholder="請輸入門牌號"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="大廈名稱：">
+                    <el-input v-model="formData.mailBuilding" placeholder="請輸入大廈名稱 (選填)"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="樓層：" label-width="210px">
+                    <el-input v-model="formData.mailFloor" placeholder="樓層"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="單位：" label-width="120px">
+                    <el-input v-model="formData.mailUnit" placeholder="單位"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item label="完整地址：">
+                    <div style="background: #f5f7fa; padding: 0 10px; border-radius: 4px; color: #666; display: flex; justify-content: space-between; align-items: center;">
+                      <span v-if="formData.mailRegion || formData.mailStreet">
+                        {{ formData.mailRegion }} {{ formData.mailStreet }} {{ formData.mailDoorNo ? formData.mailDoorNo + '號' : '' }} {{ formData.mailBuilding }} {{ formData.mailFloor ? formData.mailFloor + '樓' : '' }} {{ formData.mailUnit ? formData.mailUnit + '座/室' : '' }}
+                      </span>
+                      <span v-else style="color: #c0c4cc;">填寫上方欄位自動生成</span>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+
+            <!-- 面板 6：補充備註 -->
+            <div class="form-section">
+              <div class="panel-header">補充備註</div>
+              <el-row>
+                <el-col :span="24">
+                  <el-form-item label="備註：" style="width: 100%; padding-right: 20px;">
+                    <el-input type="textarea" :rows="3" placeholder="請輸入備註資訊" v-model="formData.remark"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+
+
+
+            <!-- 面板 7：附件 -->
+            <div class="form-section">
+              <div class="panel-header" style="justify-content: space-between;">
+                <span>附件 <span style="color: #f56c6c; font-weight: normal; font-size: 12px; margin-left: 10px;">*需上傳與移轉類型一致的附件</span></span>
+                <el-button type="primary" size="mini" icon="el-icon-upload2" @click="uploadDialogVisible = true">上傳文件</el-button>
+              </div>
+              <el-table :data="attachmentsData" border size="mini" empty-text="暫無附件，請點擊右上方按鈕上傳">
+                <el-table-column label="文件類型" prop="type" width="200"></el-table-column>
+                <el-table-column label="文件名" prop="name"></el-table-column>
+                <el-table-column label="創建時間" prop="time" width="150"></el-table-column>
+                <el-table-column label="操作" width="150" align="center">
+                  <template slot-scope="scope">
+                    <el-button type="text" @click="handlePreviewFile(scope.row)">預覽</el-button>
+                    <el-button type="text" style="color: #f56c6c;" @click="handleDeleteFile(scope.$index)">刪除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+          </el-form>
+
+          <!-- 預留後續步驟內容 -->
+          <div v-show="currentStep === 1" style="text-align: center; padding: 50px; color: #909399;">
+            <i class="el-icon-tickets" style="font-size: 48px; margin-bottom: 20px;"></i>
+            <div>稅務優惠資訊內容（待開發）</div>
+          </div>
+          <div v-show="currentStep === 2" style="text-align: center; padding: 50px; color: #909399;">
+            <i class="el-icon-s-finance" style="font-size: 48px; margin-bottom: 20px;"></i>
+            <div>預結算資訊內容（待開發）</div>
+          </div>
+          <div v-show="currentStep === 3" style="text-align: center; padding: 50px; color: #909399;">
+            <i class="el-icon-document-checked" style="font-size: 48px; margin-bottom: 20px;"></i>
+            <div>預覽並提交內容（待開發）</div>
+          </div>
+
+        </el-card>
+
+        <!-- 底部操作面板 -->
+        <div class="footer-bar">
+          <el-button @click="handleClose" size="medium" style="float: left;">關 閉</el-button>
+          <el-button plain size="medium" v-if="currentStep === 0">暫 存</el-button>
+          <el-button plain size="medium" v-if="currentStep > 0" @click="currentStep--">上一步</el-button>
+          <el-button type="primary" size="medium" v-if="currentStep < 3" @click="currentStep++">下一步</el-button>
+          <el-button type="primary" size="medium" icon="el-icon-check" v-if="currentStep === 3" @click="submitForm">提 交</el-button>
+        </div>
+      </div>
+
+      <!-- 彈窗：選擇中間移轉憑單 -->
+      <el-dialog title="選擇中間移轉憑單" :visible.sync="middleTransferDialogVisible" width="1000px" :close-on-click-modal="false" top="5vh">
+        <!-- 查詢條件區 -->
+        <el-form :inline="true" :model="middleTransferSearchForm" size="small" style="background: #fcfcfc; padding: 15px 15px 0 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #ebeef5;">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="憑單編號：" label-width="100px">
+                <el-input v-model="middleTransferSearchForm.voucherNo" placeholder="請輸入憑單編號" style="width: 150px;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="憑單狀態：" label-width="100px">
+                <el-select v-model="middleTransferSearchForm.status" placeholder="請選擇" style="width: 150px;">
+                  <el-option label="全部" value=""></el-option>
+                  <el-option label="已收款" value="已收款"></el-option>
+                  <el-option label="待收款" value="待收款"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="稅款所屬年度：" label-width="110px">
+                <el-date-picker v-model="middleTransferSearchForm.year" type="year" placeholder="選擇年份" style="width: 140px;"></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="納稅人編號：" label-width="100px">
+                <el-input v-model="middleTransferSearchForm.taxNo" placeholder="請輸入納稅人編號" style="width: 150px;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="納稅人名稱：" label-width="100px">
+                <el-input v-model="middleTransferSearchForm.taxName" placeholder="請輸入納稅人名稱" style="width: 150px;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8" style="text-align: right; padding-top: 5px;">
+              <el-button type="primary" size="small" icon="el-icon-search">查 詢</el-button>
+              <el-button size="small">重 置</el-button>
+            </el-col>
+          </el-row>
+        </el-form>
+
+        <!-- 列表區 -->
+        <el-table :data="middleTransferTableData" border style="width: 100%" size="small" header-cell-style="{background:'#f5f7fa'}">
+          <el-table-column label="操作" width="80" align="center">
+            <template slot-scope="scope">
+              <el-button type="text" size="small" style="color: #67C23A;" @click="selectMiddleVoucher(scope.row)">選擇</el-button>
+            </template>
+          </el-table-column>
+          <el-table-column prop="voucherNo" label="憑單編號" min-width="150"></el-table-column>
+          <el-table-column prop="year" label="稅款所屬年度" width="100" align="center"></el-table-column>
+          <el-table-column prop="payable" label="應繳稅款" width="120" align="right">
+            <template slot-scope="scope">
+              {{ Number(scope.row.payable).toFixed(2) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="憑單狀態名稱" width="120" align="center">
+            <template slot-scope="scope">
+              <span :style="{color: scope.row.status === '已收款' ? '#67C23A' : '#E6A23C'}">{{ scope.row.status }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="taxName" label="納稅人名稱" min-width="120" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="createTime" label="創建時間" width="150" align="center"></el-table-column>
+        </el-table>
+
+        <!-- 分頁 -->
+        <div style="margin-top: 15px; text-align: right;">
+          <el-pagination
+            background
+            layout="prev, pager, next, jumper, sizes, total"
+            :total="1"
+            :page-sizes="[10, 20, 50, 100]"
+            :page-size="50">
+          </el-pagination>
+        </div>
+
+        <div slot="footer" class="dialog-footer" style="text-align: center;">
+          <el-button @click="middleTransferDialogVisible = false" size="small">關 閉</el-button>
+        </div>
+      </el-dialog>
+
+      <!-- 彈窗：以更多查找編號 (引導頁) -->
+      <el-dialog title="以更多查找編號" :visible.sync="moreSearchDialogVisible" width="800px" :close-on-click-modal="false" top="10vh">
+        <el-form :model="moreSearchForm" size="small" label-width="100px" style="background: #fcfcfc; padding: 20px 20px 0 20px; border-radius: 4px; margin-bottom: 20px;">
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="區域：">
+                <el-input v-model="moreSearchForm.region" placeholder="輸入區域" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="街名：">
+                <el-input v-model="moreSearchForm.street" placeholder="輸入街名" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="大廈名稱：">
+                <el-input v-model="moreSearchForm.building" placeholder="輸入大廈名稱" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24" style="text-align: right; margin-bottom: 20px;">
+              <el-button size="small" icon="el-icon-refresh-left" @click="resetMoreSearch">重設</el-button>
+              <el-button type="primary" size="small" icon="el-icon-search" @click="queryMoreSearch">查詢</el-button>
+            </el-col>
+          </el-row>
+        </el-form>
+
+        <div v-if="showMoreSearchTable" style="margin-top: 10px;">
+          <h4 style="margin-bottom: 10px; color: #666;">查詢結果</h4>
+          <el-table :data="moreSearchTableData" border size="mini" max-height="300">
+            <el-table-column label="操作" width="80" align="center">
+              <template slot-scope="scope">
+                <el-button type="text" @click="handleSelectMoreSearch(scope.row)">選擇</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column prop="region" label="區域" min-width="80"></el-table-column>
+            <el-table-column prop="street" label="街名" min-width="120"></el-table-column>
+            <el-table-column prop="doorNo" label="門牌" min-width="80"></el-table-column>
+            <el-table-column prop="building" label="大廈名稱" min-width="120"></el-table-column>
+            <el-table-column prop="houseNo" label="房屋記錄編號" min-width="120"></el-table-column>
+          </el-table>
+        </div>
+
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="moreSearchDialogVisible = false" size="small">關 閉</el-button>
+        </div>
+      </el-dialog>
+
+      <!-- 彈窗：選擇房屋紀錄 -->
+      <el-dialog title="選擇房屋紀錄" :visible.sync="houseRecordDialogVisible" width="1000px" :close-on-click-modal="false" top="5vh">
+        <el-tabs v-model="houseSearchTab" type="card">
+          <el-tab-pane label="有房屋紀錄編號" name="has_record">
+            <div style="padding: 10px;">
+              <el-row :gutter="10" style="margin-bottom: 10px;">
+                <el-col :span="24">
+                  <span style="font-weight: bold; margin-right: 10px;">房屋記錄編號</span>
+                  <el-button type="primary" size="mini" plain>以更多查找編號</el-button>
+                </el-col>
+              </el-row>
+              <el-row :gutter="10">
+                <el-col :span="6"><el-input size="small" v-model="houseSearch.recordNo" placeholder="房屋記錄編號"></el-input></el-col>
+                <el-col :span="3"><el-input size="small" v-model="houseSearch.phase" placeholder="期"></el-input></el-col>
+                <el-col :span="4"><el-select size="small" v-model="houseSearch.floor" placeholder="樓層"><el-option label="1" value="1"></el-option></el-select></el-col>
+                <el-col :span="4"><el-input size="small" v-model="houseSearch.block" placeholder="座號"></el-input></el-col>
+                <el-col :span="4"><el-input size="small" v-model="houseSearch.unit" placeholder="單位編號"></el-input></el-col>
+                <el-col :span="24" style="text-align: right; margin-top: 15px;">
+                  <el-button size="small" @click="resetHouseSearch">重設</el-button>
+                  <el-button type="primary" size="small" @click="queryHouseInfo">查詢</el-button>
+                </el-col>
+              </el-row>
+              <div v-if="showHouseTree" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+                <h4 style="margin-bottom: 10px; color: #666;">選擇樓宇單位</h4>
+                <el-tree :data="houseTreeData" show-checkbox node-key="recordNo" ref="houseTree" default-expand-all @node-click="handleHouseNodeClick" style="background: #fcfcfc; padding: 10px; border-radius: 4px;"></el-tree>
+                <div style="text-align: right; margin-top: 15px;">
+                  <el-button type="warning" size="small" @click="confirmHouseSelection">申報</el-button>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="沒有房屋紀錄編號" name="no_record">
+            <div style="padding: 10px;">
+              <el-row :gutter="10">
+                <el-col :span="24" style="margin-bottom: 10px;"><span style="font-weight: bold;">物業登記局之登記編號</span></el-col>
+                <el-col :span="20"><el-input size="small" v-model="houseSearch.propertyNo" placeholder="輸入登記編號"></el-input></el-col>
+                <el-col :span="4" style="text-align: right;">
+                  <el-button size="small" @click="resetHouseSearch">重設</el-button>
+                  <el-button type="primary" size="small" @click="queryHouseInfo">查詢</el-button>
+                </el-col>
+              </el-row>
+              <div v-if="showHouseTree" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+                <h4 style="margin-bottom: 10px; color: #666;">街名/大廈名稱</h4>
+                <el-table :data="[{ region: '澳門', street: '沙梨頭海邊街', doorNo: '280', buildingName: '方積大廈' }]" border size="mini">
+                  <el-table-column prop="region" label="區域"></el-table-column>
+                  <el-table-column prop="street" label="街名"></el-table-column>
+                  <el-table-column prop="doorNo" label="門牌"></el-table-column>
+                  <el-table-column prop="buildingName" label="大廈名稱"></el-table-column>
+                </el-table>
+                <div style="text-align: right; margin-top: 15px;">
+                  <el-button type="success" size="small" @click="confirmHouseSelection">申報</el-button>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="houseRecordDialogVisible = false" size="small">關 閉</el-button>
+        </div>
+      </el-dialog>
+
+      <!-- 彈窗：納稅人庫選擇 -->
+      <el-dialog :title="isAddingBuyer ? '從納稅人庫新增買方' : '從納稅人庫新增賣方'" :visible.sync="taxpayerLibraryDialogVisible" width="1100px" :close-on-click-modal="false" top="5vh">
+        <el-form :model="taxpayerSearchForm" size="small" label-width="140px" style="background: #fcfcfc; padding: 20px 20px 0 20px; border-radius: 4px; margin-bottom: 20px;">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="證件：">
+                <el-input v-model="taxpayerSearchForm.idNo" placeholder="請輸入證件編號" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="納稅人/代理人編號：">
+                <el-input v-model="taxpayerSearchForm.taxNo" placeholder="請輸入編號" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="名稱：">
+                <el-input v-model="taxpayerSearchForm.name" placeholder="請輸入名稱" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="出生日期：">
+                <el-date-picker v-model="taxpayerSearchForm.birthDate" type="date" placeholder="選擇日期" style="width: 100%;"></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24" style="text-align: right; margin-bottom: 20px;">
+              <el-button size="small" icon="el-icon-refresh-left">重設</el-button>
+              <el-button type="primary" size="small" icon="el-icon-search">查詢</el-button>
+            </el-col>
+          </el-row>
+        </el-form>
+
+        <el-table :data="taxpayerLibraryData" border size="mini" max-height="300">
+          <el-table-column label="操作" width="80" align="center" fixed="left">
+            <template slot-scope="scope">
+              <el-button type="text" @click="handleSelectTaxpayer(scope.row)">選擇</el-button>
+            </template>
+          </el-table-column>
+          <el-table-column prop="taxNo" label="納稅人/代理人編號" min-width="140"></el-table-column>
+          <el-table-column prop="nameZh" label="中文名稱" min-width="120"></el-table-column>
+          <el-table-column prop="nameEn" label="外文名稱" min-width="120"></el-table-column>
+          <el-table-column prop="idTypeAndNo" label="證件" min-width="150"></el-table-column>
+          <el-table-column prop="birthDate" label="出生日期" min-width="100"></el-table-column>
+          <el-table-column prop="taxAddress" label="稅務住所" min-width="150" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="eNotice" label="電子通知" min-width="80"></el-table-column>
+          <el-table-column prop="agentNo" label="代理人編號" min-width="100"></el-table-column>
+          <el-table-column prop="agentName" label="代理人姓名" min-width="100"></el-table-column>
+          <el-table-column prop="agentId" label="代理人證件" min-width="120"></el-table-column>
+        </el-table>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="taxpayerLibraryDialogVisible = false" size="small">關 閉</el-button>
+        </div>
+      </el-dialog>
+
+      <!-- 彈窗：新增買方/賣方 -->
+      <el-dialog :title="isAddingBuyer ? '新增買方' : '新增賣方'" :visible.sync="addPersonDialogVisible" width="800px" :close-on-click-modal="false" top="5vh">
+        <el-form :model="personForm" label-width="140px" size="small">
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="人員類型：" required>
+                <el-radio-group v-model="personForm.personType">
+                  <el-radio label="個人">個人 (自然人)</el-radio>
+                  <el-radio label="企業">企業 (法人)</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="名稱 (中文)：" required>
+                <el-input v-model="personForm.nameZh" placeholder="請輸入中文名稱"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="名稱 (葡/英文)：">
+                <el-input v-model="personForm.nameEn" placeholder="請輸入外文名稱"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="證件類型：" required>
+                <el-select v-model="personForm.idType" placeholder="請選擇" style="width: 100%;">
+                  <el-option label="20 澳門居民身份證" value="澳門居民身份證"></el-option>
+                  <el-option label="07 香港身份證" value="香港身份證"></el-option>
+                  <el-option label="06 中國護照" value="中國護照"></el-option>
+                  <el-option label="23 中華人民共和國居民身份證" value="中華人民共和國居民身份證"></el-option>
+                  <el-option label="27 中華人民共和國往來港澳通行證" value="中華人民共和國往來港澳通行證"></el-option>
+                  <el-option label="25 因公往來香港澳門特別行政區通行證" value="因公往來香港澳門特別行政區通行證"></el-option>
+                  <el-option label="26 特別逗留證" value="特別逗留證"></el-option>
+                  <el-option label="15 外地僱員身份認別證" value="外地僱員身份認別證"></el-option>
+                  <el-option label="10 其他護照" value="其他護照"></el-option>
+                  <el-option label="99 其他證件(自然人)" value="其他證件(自然人)"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="身份識別編號：" required>
+                <el-input v-model="personForm.taxNo" placeholder="請輸入證件編號或納稅人編號"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12" v-if="personForm.personType === '個人'">
+              <el-form-item label="出生日期：">
+                <el-date-picker v-model="personForm.birthDate" type="date" placeholder="選擇日期" style="width: 100%;"></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" v-if="personForm.personType === '個人'">
+              <el-form-item label="性別：">
+                <el-radio-group v-model="personForm.gender">
+                  <el-radio label="M">男</el-radio>
+                  <el-radio label="F">女</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="聯絡電話：">
+                <el-input v-model="personForm.phone" placeholder="請輸入聯絡電話" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="電子郵箱：">
+                <el-input v-model="personForm.email" placeholder="請輸入Email" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="24">
+              <el-form-item label="常居所/註冊地址：">
+                <el-input v-model="personForm.address" placeholder="請輸入完整地址" style="width: 100%;"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="24" v-if="isAddingBuyer">
+              <el-form-item label="取得百分比：" required>
+                <el-input-number v-model="personForm.percent" :precision="4" :step="1" :min="0" :max="100" style="width: 150px;"></el-input-number>
+                <span style="margin-left: 10px;">%</span>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="24">
+              <el-form-item label="證件附件：">
+                <el-upload
+                  action="#"
+                  :auto-upload="false"
+                  :limit="2"
+                  list-type="picture-card">
+                  <i class="el-icon-plus"></i>
+                </el-upload>
+                <div style="font-size: 12px; color: #909399; margin-top: 5px;">支持上傳正反面掃描件，限 JPG/PNG 格式。</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="addPersonDialogVisible = false" size="small">取 消</el-button>
+          <el-button type="primary" @click="confirmAddPerson" size="small">確 認 儲 存</el-button>
+        </div>
+      </el-dialog>
+
+      <!-- 彈窗：上傳附件 -->
+      <el-dialog title="上傳附件" :visible.sync="uploadDialogVisible" width="500px" :close-on-click-modal="false">
+        <el-form label-width="100px" size="small">
+          <el-form-item label="文件類型：" required>
+            <!-- 自動帶入或限制為表單中選擇的移轉文件類型 -->
+            <el-select v-model="uploadForm.type" style="width: 100%;">
+              <el-option label="預約買賣合同" value="預約買賣合同"></el-option>
+              <el-option label="買賣公證書" value="買賣公證書"></el-option>
+              <el-option label="財產分割公證書" value="財產分割公證書"></el-option>
+              <el-option label="法院判決書" value="法院判決書"></el-option>
+              <el-option label="澳門特別行政區公報（長期租借或租賃方式批出的土地）" value="澳門特別行政區公報"></el-option>
+              <el-option label="賦予受權人財產分權的授權書" value="賦予受權人財產分權的授權書"></el-option>
+              <el-option label="贈予公證書" value="贈予公證書"></el-option>
+              <el-option label="其他" value="other"></el-option>
+            </el-select>
+            <div style="font-size: 12px; color: #E6A23C; margin-top: 5px; line-height: 1.2;">
+              <i class="el-icon-warning-outline"></i> 請注意：上傳的文件類型必須與【移轉資訊】中選擇的類型保持一致。
+            </div>
+          </el-form-item>
+          <el-form-item label="選擇文件：" required>
+            <el-upload
+              class="upload-demo"
+              action="#"
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              :file-list="uploadForm.fileList"
+              :limit="1">
+              <el-button size="small" type="primary" plain icon="el-icon-folder-opened">點擊選擇文件</el-button>
+              <div slot="tip" class="el-upload__tip">支持 PDF, JPG, PNG 格式，大小不超過 10MB</div>
+            </el-upload>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="uploadDialogVisible = false" size="small">取 消</el-button>
+          <el-button type="primary" @click="confirmUpload" size="small">確認上傳</el-button>
+        </div>
+      </el-dialog>
+
+      <!-- 彈窗：預覽附件 -->
+      <el-dialog :title="'文件預覽: ' + previewFileName" :visible.sync="previewDialogVisible" width="800px">
+        <div style="height: 400px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; color: #909399; flex-direction: column;">
+          <i class="el-icon-document" style="font-size: 60px; margin-bottom: 20px; color: #c0c4cc;"></i>
+          <span style="font-size: 16px;">文件預覽區域</span>
+          <span style="font-size: 13px; margin-top: 10px;">(此處將調用瀏覽器插件或 PDF.js 展示真實文件內容)</span>
+        </div>
+      </el-dialog>
+
+    </div>
+
+    <!-- 底部 DSF 標準頁腳 -->
+    <div class="dsf-footer">
+      <div class="footer-left">
+        <div class="footer-logo">DSF</div>
+        <div>
+          <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">澳門特別行政區政府財政局</div>
+          <div><i class="el-icon-location-information"></i> 地址：澳門南灣大馬路575，579及585號財政局大樓</div>
+          <div>
+            <span style="margin-right: 20px;"><i class="el-icon-phone-outline"></i> 電話：2833 6366</span>
+            <span><i class="el-icon-printer"></i> 傳真：2830 0133</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer-right">
+        <div class="qrcode-box">
+          <div style="width: 50px; height: 50px; background: #eee; margin-right: 8px; display: flex; align-items: center; justify-content: center;"><i class="el-icon-picture-outline"></i></div>
+          <div>
+            <div style="font-weight: bold; margin-bottom: 3px;">澳門稅務資訊<br>Macau Tax</div>
+            <div style="font-size: 10px; color: #999;">iOS / Android APP</div>
+          </div>
+        </div>
+        <div class="qrcode-box">
+          <div style="width: 50px; height: 50px; background: #eee; margin-right: 8px; display: flex; align-items: center; justify-content: center;"><i class="el-icon-picture-outline"></i></div>
+          <div>
+            <div style="font-weight: bold; margin-bottom: 3px;">澳門財政局<br>DSF WeChat</div>
+            <div style="font-size: 10px; color: #999;">微信公眾號</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      版權所有© 2026 澳門特別行政區政府財政局
+    </div>
+
+  </div>
+
+  <!-- 引入 Vue 和 Element UI 腳本 -->
+  <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: function() {
+        return {
+          currentStep: 0,
+          currentView: 'list', // 控制顯示列表頁(list)還是表單頁(form)
+          searchForm: {
+            hasHouseNo: true,
+            houseNo: '',
+            marit: '',
+            fase: '',
+            andar: '',
+            mradia: '',
+            carparkNo: '',
+            propertyNo: '',
+            region: '',
+            street: '',
+            building: '',
+            doorNo: '',
+            status: '全部', // 默認全部，以便顯示批量作廢按鈕
+            recordNo: '',
+            taxName: '',
+            taxNo: '',
+            idType: '',
+            idNo: '',
+            source: '',
+            isOverdue: '',
+            dateRange: []
+          },
+          selectedRows: [], // 保存列表選中的數據
+          tableData: [
+            { recordNo: 'SELO-I-2025-0000001', houseNo: '71024-RC-ARC-*1, 71024-RC-ARC-*2', buyer: '張偉', seller: '李國慶', source: '線上投遞', applyTime: '2026-04-07 10:00:00', transferMethod: '買賣', formCount: 1, isOverdue: false, status: '已處理', overdueDays: 0, updateTime: '2026-04-07 18:28:17' },
+            { recordNo: 'SELO-J-2025-0000002', houseNo: 'H20260407002', buyer: '李國慶', seller: '張偉', source: '線下投遞', applyTime: '2026-04-07 11:30:00', transferMethod: '無償', formCount: 2, isOverdue: true, status: '待處理', overdueDays: 5, updateTime: '2026-04-07 17:56:25' },
+            { recordNo: 'SELO-I-2025-0000003', houseNo: 'H20260407003', buyer: '王建國', seller: '趙鐵柱', source: '線上投遞', applyTime: '2026-04-06 09:15:00', transferMethod: '買賣', formCount: 1, isOverdue: false, status: '待處理', overdueDays: 0, updateTime: '2026-04-04 15:39:00' },
+            { recordNo: 'SELO-I-2025-0000004', houseNo: 'T20260407004', buyer: '劉梅', seller: '孫悟空', source: '線上投遞', applyTime: '2026-04-05 14:20:00', transferMethod: '買賣', formCount: 1, isOverdue: false, status: '待處理', overdueDays: 0, updateTime: '2026-04-04 14:24:52' },
+            { recordNo: 'SELO-J-2025-0000005', houseNo: 'H20260407005', buyer: '陳大文', seller: '白展堂', source: '線下投遞', applyTime: '2026-03-25 16:00:00', transferMethod: '無償', formCount: 1, isOverdue: true, status: '已作廢', overdueDays: 12, updateTime: '2026-03-31 16:26:38' },
+            { recordNo: 'SELO-I-2025-0000006', houseNo: 'H20260407006', buyer: '趙鐵柱', seller: '王建國', source: '線上投遞', applyTime: '2026-03-28 10:30:00', transferMethod: '買賣', formCount: 3, isOverdue: false, status: '已處理', overdueDays: 0, updateTime: '2026-03-29 17:09:45' },
+            { recordNo: 'SELO-I-2025-0000007', houseNo: 'H20260407007', buyer: '孫悟空', seller: '劉梅', source: '線上投遞', applyTime: '2026-03-28 11:00:00', transferMethod: '無償', formCount: 1, isOverdue: false, status: '待處理', overdueDays: 0, updateTime: '2026-03-29 17:09:45' },
+            { recordNo: 'SELO-J-2025-0000008', houseNo: 'H20260407008', buyer: '白展堂', seller: '陳大文', source: '線下投遞', applyTime: '2026-03-20 09:00:00', transferMethod: '買賣', formCount: 1, isOverdue: true, status: '待處理', overdueDays: 3, updateTime: '2026-03-29 17:09:45' },
+            { recordNo: 'SELO-I-2025-0000009', houseNo: 'T20260407009', buyer: '高啟強', seller: '張偉', source: '線上投遞', applyTime: '2026-03-29 15:45:00', transferMethod: '買賣', formCount: 2, isOverdue: false, status: '待處理', overdueDays: 0, updateTime: '2026-03-29 17:07:45' }
+          ],
+          // 不動產查詢相關
+          houseRecordDialogVisible: false,
+          houseSearchTab: 'has_record',
+          moreSearchDialogVisible: false,
+          moreSearchForm: {
+            region: '',
+            street: '',
+            building: ''
+          },
+          showMoreSearchTable: false,
+          moreSearchTableData: [
+            { region: '澳門', street: '沙梨頭海邊街', doorNo: '280', building: '方積大廈', houseNo: '71024' },
+            { region: '氹仔', street: '孫逸仙博士大馬路', doorNo: '112', building: '泉亮花園', houseNo: '81123' }
+          ],
+          houseSearch: {
+            recordNo: '',
+            phase: '',
+            floor: '',
+            block: '',
+            unit: '',
+            propertyNo: ''
+          },
+          showHouseTree: false,
+          houseTreeData: [
+          {
+            label: '方積大廈 (澳門測試，沙梨頭海邊街280號)',
+            children: [
+              {
+                label: '1幢',
+                children: [
+                  { label: 'A1座 (住宅)', recordNo: '71024-RC-A1' },
+                  { label: 'B2座 (住宅)', recordNo: '71024-RC-B2' }
+                ]
+              },
+              {
+                label: '停車場 (機動車輛位)',
+                children: [
+                  { label: '車位 1', recordNo: '71024-RC-ARC-*1' },
+                  { label: '車位 2', recordNo: '71024-RC-ARC-*2' },
+                  { label: '車位 3', recordNo: '71024-RC-ARC-*3' }
+                ]
+              }
+            ]
+          }
+        ],
+          formData: {
+            date: new Date(),
+            transferType: 'real_estate',
+            fileType: '買賣公證書',
+            propertyType: '市區房屋',
+            unitType: 'independent', // 默認獨立單位
+            houseRecordNo: '',
+            propertyId: '',
+            bookB: '',
+            pageNo: '',
+            usage: '1',
+            otherUsageDesc: '',
+            netArea: '',
+            grossArea: '',
+            buildYear: '',
+            ownershipType: '完全所有權',
+            streetFull: '',
+            region: '',
+            street: '',
+            doorNo: '',
+            buildingName: '',
+            fullAddress: '',
+            declarantType: '00',
+            declarantTaxNo: '',
+            declarantIdType: '',
+            declarantIdNo: '',
+            declarantNameZh: '',
+            declarantNamePt: '',
+            declarantNameEn: '',
+            representedTaxpayer: '',
+            declarantAddress: '',
+            currency: 'MOP',
+            transferValue: '',
+            transferMethod: '買賣',
+            transferUsage: '住宅',
+            fileDate: new Date(),
+            isPrivateDoc: false,
+            isMiddleTransfer: false,
+            middleVoucherNo: '',
+            middleVoucherStatus: '',
+            middleVoucherTax: '',
+            middleVoucherPayable: '',
+            
+            // 郵寄地址
+            mailRecipient: '',
+            mailRegion: '',
+            mailStreet: '',
+            mailDoorNo: '',
+            mailBuilding: '',
+            mailFloor: '',
+            mailUnit: '',
+
+            remark: ''
+          },
+          showSSDAlert: true,
+          mopCalculatedValue: 0,
+          isHouseSelected: false, // 控制選擇房屋後某些欄位只讀
+          buyersData: [
+            { name: '張偉', taxNo: '81234567', idType: '澳門居民身份證', percent: 50.0000, isFirstHome: false }
+          ],
+          sellersData: [
+            { name: '李國慶', taxNo: '87654321', idType: '澳門居民身份證', percent: 100.0000 }
+          ],
+          taxAgentsData: [], // 稅務代理人數據
+          attachmentsData: [
+            { type: '買賣公證書', name: '買賣合同掃描件.pdf', time: '2026-04-07 10:00:00' }
+          ],
+          uploadDialogVisible: false,
+          quickSelectDialogVisible: false,
+          mapPreviewDialogVisible: false,
+          mapViewType: 'map',
+          ocrDialogVisible: false,
+          isOcrLoading: false,
+          ocrTarget: '', // 'buyer' or 'seller'
+          quickSelectTarget: '', // 'buyer' or 'seller'
+          historicalClients: [
+            { id: '1', name: '澳門某某發展有限公司(00123456)', type: '企業' },
+            { id: '2', name: '何大明(08976543)', type: '個人' },
+            { id: '3', name: '澳門某某銀行(00987654)', type: '企業' }
+          ],
+          uploadForm: {
+            type: '買賣公證書',
+            fileList: []
+          },
+          previewDialogVisible: false,
+          previewFileName: '',
+          
+          // 新增買方/賣方彈窗相關數據
+        addPersonDialogVisible: false,
+        taxpayerLibraryDialogVisible: false,
+        taxpayerSearchForm: {
+          idNo: '',
+          taxNo: '',
+          name: '',
+          birthDate: ''
+        },
+        taxpayerLibraryData: [
+          { taxNo: '81234567', nameZh: '陳大文', nameEn: 'CHAN TAI MAN', idTypeAndNo: '澳門居民身份證: 1234567(8)', birthDate: '1980-01-01', taxAddress: '澳門新口岸...', eNotice: '是', agentNo: '', agentName: '', agentId: '' },
+          { taxNo: '87654321', nameZh: '李小明', nameEn: 'LEE SIO MENG', idTypeAndNo: '澳門居民身份證: 7654321(0)', birthDate: '1990-05-15', taxAddress: '澳門氹仔...', eNotice: '否', agentNo: '112233', agentName: '張三', agentId: '澳門居民身份證: 2233445(5)' }
+        ],
+          isAddingBuyer: true,
+          personForm: {
+            personType: '個人',
+            nameZh: '',
+            nameEn: '',
+            idType: '',
+            taxNo: '',
+            birthDate: '',
+            gender: '',
+            phone: '',
+            email: '',
+            address: '',
+            percent: 0
+          },
+
+          // 中間移轉憑單彈窗相關數據
+          middleTransferDialogVisible: false,
+          middleTransferSearchForm: {
+            voucherNo: '',
+            status: '',
+            year: '',
+            taxNo: '',
+            taxName: ''
+          },
+          middleTransferTableData: [
+            {
+              voucherNo: '2026-08-000015-0-0',
+              year: '2026',
+              payable: 501.00,
+              status: '已收款',
+              taxName: '測試百合街',
+              createTime: '2026-04-07 16:42:06'
+            }
+          ]
+        }
+      },
+      computed: {
+        filteredTableData() {
+          return this.tableData.filter(item => {
+            // 1. 處理狀態過濾
+            const statusMatch = this.searchForm.status === '全部' || item.status === this.searchForm.status;
+            
+            // 2. 申報記錄編號過濾
+            const recordNoMatch = !this.searchForm.recordNo || item.recordNo.includes(this.searchForm.recordNo);
+            
+            // 3. 申報來源過濾 (將 searchForm.source 轉換為中文比對)
+            let sourceLabel = '';
+            if (this.searchForm.source === 'online') sourceLabel = '線上投遞';
+            if (this.searchForm.source === 'offline') sourceLabel = '線下投遞';
+            const sourceMatch = !this.searchForm.source || item.source === sourceLabel;
+            
+            // 4. 逾期狀態過濾 (將 searchForm.isOverdue 轉換為 boolean 比對)
+            let overdueMatch = true;
+            if (this.searchForm.isOverdue === 'true') overdueMatch = item.isOverdue === true;
+            if (this.searchForm.isOverdue === 'false') overdueMatch = item.isOverdue === false;
+
+            // 5. 納稅人名稱過濾 (包含買方和賣方)
+            const taxNameMatch = !this.searchForm.taxName || 
+                                 (item.buyer && item.buyer.includes(this.searchForm.taxName)) || 
+                                 (item.seller && item.seller.includes(this.searchForm.taxName)) ||
+                                 (item.nameZh && item.nameZh.includes(this.searchForm.taxName));
+
+            // 6. 申請時間過濾
+            let dateMatch = true;
+            if (this.searchForm.dateRange && this.searchForm.dateRange.length === 2) {
+              const start = new Date(this.searchForm.dateRange[0]).getTime();
+              // 設置結束時間為當天的 23:59:59
+              const end = new Date(this.searchForm.dateRange[1]).setHours(23, 59, 59, 999);
+              const applyTime = new Date(item.applyTime).getTime();
+              dateMatch = applyTime >= start && applyTime <= end;
+            }
+
+            // 7. 證件類別過濾 (如果 searchForm.idType 為空，則視為匹配所有)
+            // 這裡將下拉選單的 value（數字編碼）映射到中文標籤進行比對
+            const idTypeMap = {
+              '20': '澳門居民身份證',
+              '07': '香港身份證',
+              '06': '中國護照',
+              '23': '中華人民共和國居民身份證',
+              '27': '中華人民共和國往來港澳通行證',
+              '25': '因公往來香港澳門特別行政區通行證',
+              '26': '特別逗留證',
+              '15': '外地僱員身份認別證',
+              '10': '其他護照',
+              '99': '其他證件(自然人)'
+            };
+            const typeMatch = !this.searchForm.idType || item.idType === idTypeMap[this.searchForm.idType];
+            
+            // 返回所有條件均符合的資料
+            return statusMatch && recordNoMatch && sourceMatch && overdueMatch && taxNameMatch && dateMatch && typeMatch;
+          });
+        },
+        // 計算所有取得人的百分比合計
+        totalPercent() {
+          let total = 0;
+          this.buyersData.forEach(buyer => {
+            total += Number(buyer.percent) || 0;
+          });
+          return parseFloat(total.toFixed(4));
+        }
+      },
+      methods: {
+        // 中間移轉憑單選擇邏輯
+        selectMiddleVoucher(row) {
+          this.formData.middleVoucherNo = row.voucherNo;
+          this.formData.middleVoucherStatus = row.status;
+          this.formData.middleVoucherTax = row.payable; // 假設印花稅等同於應繳稅款，或從其他欄位取
+          this.formData.middleVoucherPayable = row.payable;
+          this.middleTransferDialogVisible = false;
+          this.$message.success('已成功關聯中間移轉憑單');
+        },
+
+        calculateMopValue() {
+          if (!this.formData.transferValue) {
+            this.mopCalculatedValue = 0;
+            return;
+          }
+          const val = parseFloat(this.formData.transferValue);
+          if (isNaN(val)) return;
+          
+          if (this.formData.currency === 'HKD') {
+            this.mopCalculatedValue = (val * 1.0315).toFixed(2);
+          } else if (this.formData.currency === 'CNY') {
+            this.mopCalculatedValue = (val * 1.1350).toFixed(2);
+          } else {
+            this.mopCalculatedValue = val.toFixed(2);
+          }
+        },
+        handlePropertyTypeChange(val) {
+          // 如果切換不動產類型，重置關聯狀態
+          if (val !== '00') {
+            this.formData.unitType = '';
+          } else {
+            this.formData.unitType = 'independent';
+          }
+          // 清空房屋相關數據
+          this.isHouseSelected = false;
+          this.formData.propertyId = '';
+          this.formData.bookB = '';
+          this.formData.pageNo = '';
+          this.formData.houseRecordNo = '';
+          this.formData.tempRegNo = '';
+        },
+        handleSelectHouse() {
+          // 模擬選擇了房屋紀錄 (跳轉至 503566)
+          this.$message({
+            message: '跳轉至“503566-選擇房屋紀錄引導頁”，並回填數據',
+            type: 'success'
+          });
+          // 模擬回填數據
+          this.isHouseSelected = true;
+          this.formData.houseRecordNo = 'H202604071234';
+          this.formData.propertyId = 'PRP-998877';
+          this.formData.bookB = 'B01';
+          this.formData.pageNo = 'P99';
+          this.formData.usage = '1';
+        },
+        // 創新點 6：歷史常用客戶庫處理
+        handleQuickSelectBuyer() {
+          this.quickSelectTarget = 'buyer';
+          this.quickSelectDialogVisible = true;
+        },
+        handleQuickSelectSeller() {
+          this.quickSelectTarget = 'seller';
+          this.quickSelectDialogVisible = true;
+        },
+        confirmQuickSelect(row) {
+          if (this.quickSelectTarget === 'buyer') {
+            this.buyersData.push({
+              name: row.name,
+              percent: 0,
+              isFirstHome: false
+            });
+            this.$message.success('已成功從歷史庫帶入取得人：' + row.name);
+          } else {
+            this.sellersData.push({
+              name: row.name
+            });
+            this.$message.success('已成功從歷史庫帶入移轉人：' + row.name);
+          }
+          this.quickSelectDialogVisible = false;
+        },
+        
+        // 創新點 7：地圖預覽處理
+        handlePreviewMap() {
+          this.mapPreviewDialogVisible = true;
+          this.mapViewType = 'map';
+        },
+        
+        // 創新點 8：OCR 智能證件識別處理
+        handleOcrBuyer() {
+          this.ocrTarget = 'buyer';
+          this.ocrDialogVisible = true;
+          this.isOcrLoading = false;
+        },
+        handleOcrSeller() {
+          this.ocrTarget = 'seller';
+          this.ocrDialogVisible = true;
+          this.isOcrLoading = false;
+        },
+        handleOcrSimulate(file) {
+          this.isOcrLoading = true;
+          // 模擬 API 請求延遲
+          setTimeout(() => {
+            this.isOcrLoading = false;
+            this.ocrDialogVisible = false;
+            
+            // 模擬識別結果
+            const mockOcrResult = {
+              name: '張三(7290001)', // 模擬已匹配到系統中的納稅人
+              idNo: '7290001',
+              idType: '澳門居民身份證'
+            };
+            
+            if (this.ocrTarget === 'buyer') {
+              this.buyersData.push({
+                name: mockOcrResult.name,
+                percent: 0,
+                isFirstHome: false
+              });
+              this.$message.success(`OCR 識別成功！已帶入取得人：${mockOcrResult.name}`);
+            } else {
+              this.sellersData.push({
+                name: mockOcrResult.name
+              });
+              this.$message.success(`OCR 識別成功！已帶入移轉人：${mockOcrResult.name}`);
+            }
+          }, 2000);
+        },
+
+        handleSelectBuyer() {
+          this.$message({ message: '跳轉至”501431-納稅人選擇頁“', type: 'success' });
+          // 模擬選擇返回數據
+          this.buyersData.push({ name: '王建國 (88889999)', percent: 0.0000, isFirstHome: false });
+        },
+        handleDeleteBuyer(index) {
+          this.$confirm('確認要刪除該數據嗎？', '提示', {
+            confirmButtonText: '確認',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.buyersData.splice(index, 1);
+            this.$message({ type: 'success', message: '刪除成功' });
+          }).catch(() => {});
+        },
+        
+        // 不動產查詢邏輯
+        resetMoreSearch() {
+          this.moreSearchForm = { region: '', street: '', building: '' };
+          this.showMoreSearchTable = false;
+        },
+        queryMoreSearch() {
+          this.showMoreSearchTable = true;
+          this.$message.success('查詢成功');
+        },
+        handleSelectMoreSearch(row) {
+          this.searchForm.houseNo = row.houseNo;
+          this.moreSearchDialogVisible = false;
+          this.$message.success('已選擇房屋記錄編號：' + row.houseNo);
+        },
+        resetHouseSearch() {
+          this.houseSearch = { recordNo: '', phase: '', floor: '', block: '', unit: '', propertyNo: '' };
+          this.showHouseTree = false;
+        },
+        queryHouseInfo() {
+          if (this.houseSearchTab === 'has_record' && !this.houseSearch.recordNo) {
+            this.$message.warning('請輸入房屋記錄編號');
+            return;
+          }
+          if (this.houseSearchTab === 'no_record' && !this.houseSearch.propertyNo) {
+            this.$message.warning('請輸入物業登記局之登記編號');
+            return;
+          }
+
+          if (this.houseSearchTab === 'has_record' && this.houseSearch.recordNo === '123456') {
+            this.houseTreeData = [
+              {
+                label: '泉亮花園 (氹仔測試，孫逸仙博士大馬路112號)',
+                children: [
+                  {
+                    label: '2幢',
+                    children: [
+                      { label: 'C3座 (住宅)', recordNo: '123456-RC-C3' }
+                    ]
+                  },
+                  {
+                    label: '停車場 (機動車輛位)',
+                    children: [
+                      { label: '車位 88', recordNo: '123456-RC-ARC-*88' }
+                    ]
+                  }
+                ]
+              }
+            ];
+          } else {
+            this.houseTreeData = [
+              {
+                label: '方積大廈 (澳門測試，沙梨頭海邊街280號)',
+                children: [
+                  {
+                    label: '1幢',
+                    children: [
+                      { label: 'A1座 (住宅)', recordNo: '71024-RC-A1' },
+                      { label: 'B2座 (住宅)', recordNo: '71024-RC-B2' }
+                    ]
+                  },
+                  {
+                    label: '停車場 (機動車輛位)',
+                    children: [
+                      { label: '車位 1', recordNo: '71024-RC-ARC-*1' },
+                      { label: '車位 2', recordNo: '71024-RC-ARC-*2' },
+                      { label: '車位 3', recordNo: '71024-RC-ARC-*3' }
+                    ]
+                  }
+                ]
+              }
+            ];
+          }
+
+          this.$message.success('查詢成功');
+          this.showHouseTree = true;
+        },
+        handleHouseNodeClick(data) {
+          // do nothing, just visual select
+        },
+        confirmHouseSelection() {
+          let selectedRecords = [];
+          if (this.houseSearchTab === 'has_record') {
+            const checkedNodes = this.$refs.houseTree.getCheckedNodes();
+            selectedRecords = checkedNodes.filter(node => node.recordNo).map(node => node.recordNo);
+            
+            if (selectedRecords.length === 0) {
+              this.$message.warning('請至少選擇一個樓宇單位');
+              return;
+            }
+          }
+          
+          this.formData.houseRecordNo = this.houseSearchTab === 'has_record' ? selectedRecords.join(', ') : 'T20260407009';
+          this.formData.propertyType = '市區房屋';
+          this.formData.propertyId = '24000';
+          this.formData.bookB = 'B01';
+          this.formData.pageNo = 'P99';
+          this.formData.usage = '1';
+          this.formData.netArea = '85.50';
+          this.formData.grossArea = '110.25';
+          this.formData.buildYear = '2015';
+          this.formData.streetFull = '澳門特別行政區沙梨頭海邊街';
+          this.formData.region = '澳門';
+          this.formData.street = '沙梨頭海邊街';
+          this.formData.doorNo = '280';
+          this.formData.buildingName = '方積大廈';
+          this.formData.fullAddress = '澳門特別行政區沙梨頭海邊街280號方積大廈';
+          
+          this.houseRecordDialogVisible = false;
+          this.$message.success('已自動補全不動產資訊');
+        },
+        // 創新點：新增買方/賣方彈窗邏輯
+        handleAddBuyerDialog() {
+          this.isAddingBuyer = true;
+          this.taxpayerLibraryDialogVisible = true;
+        },
+        handleAddSellerDialog() {
+          this.isAddingBuyer = false;
+          this.taxpayerLibraryDialogVisible = true;
+        },
+        handleSelectTaxpayer(row) {
+          if (this.isAddingBuyer) {
+            this.buyersData.push({
+              name: row.nameZh || row.nameEn,
+              idType: row.idTypeAndNo.split(':')[0] || '澳門居民身份證',
+              taxNo: row.taxNo,
+              percent: 0,
+              isFirstHome: false
+            });
+            this.$message.success('已成功從納稅人庫新增買方：' + (row.nameZh || row.nameEn));
+          } else {
+            this.sellersData.push({
+              name: row.nameZh || row.nameEn,
+              idType: row.idTypeAndNo.split(':')[0] || '澳門居民身份證',
+              taxNo: row.taxNo,
+              percent: 0
+            });
+            this.$message.success('已成功從納稅人庫新增賣方：' + (row.nameZh || row.nameEn));
+          }
+          this.taxpayerLibraryDialogVisible = false;
+        },
+        confirmAddPerson() {
+          if (!this.personForm.name || !this.personForm.idType || !this.personForm.taxNo) {
+            this.$message.warning('請填寫完整信息');
+            return;
+          }
+          if (this.isAddingBuyer) {
+            this.buyersData.push({
+              name: this.personForm.name,
+              idType: this.personForm.idType,
+              taxNo: this.personForm.taxNo,
+              percent: this.personForm.percent,
+              isFirstHome: false
+            });
+            this.$message.success('已成功新增買方');
+          } else {
+            this.sellersData.push({
+              name: this.personForm.name,
+              idType: this.personForm.idType,
+              taxNo: this.personForm.taxNo,
+              percent: 100.0000 // 賣方默認 100% 或不可填
+            });
+            this.$message.success('已成功新增賣方');
+          }
+          this.addPersonDialogVisible = false;
+        },
+
+        handleEditSeller(row) {
+          this.$message({ message: '跳轉至”503567-新增移轉人資料處理頁“進行編輯: ' + row.name, type: 'success' });
+        },
+        handleRemoveSeller(index) {
+          this.$confirm('確認要移除該數據嗎？', '提示', {
+            confirmButtonText: '確認',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.sellersData.splice(index, 1);
+            this.$message({ type: 'success', message: '移除成功' });
+          }).catch(() => {});
+        },
+        // 申報人面板相關邏輯
+        handleSelectFromDB() {
+          this.$message({
+            message: '打開“500984-納稅人選擇頁(單選)”',
+            type: 'success'
+          });
+          // 模擬選中納稅人後自動回填
+          this.formData.declarantTaxNo = '0123456789';
+          this.formData.declarantNameZh = '陳小明';
+        },
+        // 附件上傳相關邏輯
+        handleFileChange(file, fileList) {
+          this.uploadForm.fileList = fileList.slice(-1);
+        },
+        confirmUpload() {
+          if (this.uploadForm.fileList.length === 0) {
+            this.$message.warning('請先選擇文件！');
+            return;
+          }
+          // 模擬獲取當前時間
+          const now = new Date();
+          const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+          
+          this.attachmentsData.push({
+            type: this.uploadForm.type,
+            name: this.uploadForm.fileList[0].name,
+            time: timeStr
+          });
+          
+          this.$message.success('文件上傳成功！');
+          this.uploadDialogVisible = false;
+          this.uploadForm.fileList = []; // 重置文件列表
+        },
+        handlePreviewFile(row) {
+          this.previewFileName = row.name;
+          this.previewDialogVisible = true;
+        },
+        handleDeleteFile(index) {
+          this.$confirm('確認要刪除該附件嗎？', '提示', {
+            confirmButtonText: '確認',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.attachmentsData.splice(index, 1);
+            this.$message({ type: 'success', message: '附件刪除成功' });
+          }).catch(() => {});
+        },
+        resetSearch() {
+          this.searchForm = {
+            houseNo: '',
+            personType: [],
+            taxName: '',
+            taxNo: '',
+            idType: '',
+            idNo: '',
+            status: '全部'
+          };
+        },
+        handleSelectionChange(val) {
+          this.selectedRows = val;
+        },
+        // 處理批量作廢邏輯
+        handleBatchVoid() {
+          if (this.selectedRows.length === 0) {
+            this.$message({
+              message: '請選擇數據',
+              type: 'warning'
+            });
+            return;
+          }
+          
+          // 校驗所選數據的處理狀態是否均為“待處理”
+          const allPending = this.selectedRows.every(row => row.status === '待處理');
+          
+          if (!allPending) {
+            this.$message({
+              message: '僅可作廢待處理的數據！',
+              type: 'error'
+            });
+            return;
+          }
+
+          this.$confirm('確認作廢所選數據嗎？作廢後將無法恢復，請謹慎操作。', '提示', {
+            confirmButtonText: '確認作廢',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            // 模擬狀態流轉
+            this.selectedRows.forEach(row => {
+              row.status = '已作廢';
+            });
+            this.$message({ type: 'success', message: '作廢成功' });
+            // 清空選擇
+            this.$refs.multipleTable && this.$refs.multipleTable.clearSelection();
+          }).catch(() => {
+            // 取消彈窗，不進行操作
+          });
+        },
+        handleView(row) {
+          this.$message('跳轉至: 503648-財產移轉申報查詢處理頁');
+        },
+        handleClose() {
+          this.$confirm('倘已改變數據，關閉後剛改變的數據不會保存，確認要關閉？', '提示', {
+            confirmButtonText: '確認',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.currentView = 'list';
+          }).catch(() => {});
+        },
+        submitForm() {
+          if (this.buyersData.length === 0) {
+            this.$message({ type: 'error', message: '請至少選擇一個取得人！' });
+            return;
+          }
+          if (this.totalPercent !== 100) {
+            this.$message({ type: 'error', message: '取得人百分比合計必須等於 100%！當前為 ' + this.totalPercent + '%' });
+            return;
+          }
+          if (this.sellersData.length === 0) {
+            this.$message({ type: 'error', message: '請至少選擇一個移轉人！' });
+            return;
+          }
+          this.$confirm('確認提交嗎？', '提示', {
+            confirmButtonText: '確定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.$message({ type: 'success', message: '已成功提交!' });
+            this.currentView = 'list';
+          }).catch(() => {});
+        }
+      }
+    })
+  </script>
+</body>
+</html>
