@@ -852,6 +852,14 @@
 
           </el-form>
 
+          <!-- 底部操作按鈕區 -->
+          <div style="margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid #ebeef5;">
+            <el-button icon="el-icon-close" size="medium" @click="handleCancelDeclare">取消申報</el-button>
+            <el-button icon="el-icon-refresh-left" size="medium" @click="handleResetDeclare">重設申報</el-button>
+            <el-button type="warning" icon="el-icon-collection" size="medium" @click="handleSaveDeclare">暫存申報</el-button>
+            <el-button type="primary" icon="el-icon-check" size="medium" @click="handleSubmitDeclare">遞交申報</el-button>
+          </div>
+
           <!-- 預留後續步驟內容 -->
           <div v-show="currentStep === 1" style="text-align: center; padding: 50px; color: #909399;">
             <i class="el-icon-tickets" style="font-size: 48px; margin-bottom: 20px;"></i>
@@ -1600,6 +1608,38 @@
         }
       },
       methods: {
+        handleCancelDeclare() {
+          this.$confirm('確定要取消當前申報嗎？未儲存的內容將會遺失。', '提示', {
+            confirmButtonText: '確定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.$message.info('已取消申報，返回引導頁');
+            this.currentPage = 'list';
+          }).catch(() => {});
+        },
+        handleResetDeclare() {
+          this.$confirm('確定要重設當前表單嗎？', '提示', {
+            confirmButtonText: '確定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.$message.success('表單已重設');
+          }).catch(() => {});
+        },
+        handleSaveDeclare() {
+          this.$message.success('申報已暫存');
+        },
+        handleSubmitDeclare() {
+          this.$confirm('確定要遞交申報嗎？', '提示', {
+            confirmButtonText: '確定遞交',
+            cancelButtonText: '取消',
+            type: 'success'
+          }).then(() => {
+            this.$message.success('申報遞交成功！');
+            this.currentPage = 'list';
+          }).catch(() => {});
+        },
         // 中間移轉憑單選擇邏輯
         selectMiddleVoucher(row) {
           this.formData.middleVoucherNo = row.voucherNo;
